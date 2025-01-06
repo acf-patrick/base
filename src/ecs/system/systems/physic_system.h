@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_PHYSIC_SYSTEM
+
 #include <box2d/box2d.h>
 
 #include "../../../application/application.h"
@@ -39,6 +41,9 @@ class PhysicSystem : public entix::ecs::ISystem {
     }
 };
 
+
 }  // namespace system
 }  // namespace ecs
 }  // namespace entix
+
+#endif

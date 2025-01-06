@@ -149,7 +149,10 @@ int Application::getPreferredFramerate() const { return _fpsManager.rate; }
 
 void Application::initializeSystems() {
     auto systems = ecs::SystemManager::Get();
+
+#ifdef USE_PHYSIC_SYSTEM
     systems->add<ecs::system::PhysicSystem>();
+#endif
 }
 
 // static

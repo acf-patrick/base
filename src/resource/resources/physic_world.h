@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_PHYSIC_SYSTEM
+
 #include <box2d/box2d.h>
 
 #include "../../logger/logger.h"
@@ -25,3 +27,5 @@ struct PhysicWorld {
 
 }  // namespace resource
 }  // namespace entix
+
+#endif

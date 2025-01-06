@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# use physic system
+option(USE_PHYSIC_SYSTEM "Enable physics simulation and physic system" OFF)
+
 # disable box2d tests build
 set(BOX2D_BUILD_UNIT_TESTS OFF CACHE BOOL "Disable Box2D Unit Tests build" FORCE)
 set(BOX2D_BUILD_TESTBED OFF CACHE BOOL "Disable Box2D Testbed build" FORCE)
@@ -27,12 +30,16 @@ add_subdirectory(external/SDL_mixer)
 add_subdirectory(external/SDL_ttf)
 add_subdirectory(external/SDL2_gfx)
 
-add_subdirectory(external/box2d)
 add_subdirectory(external/tileson)
 add_subdirectory(external/yaml-cpp)
 
+if(USE_PHYSIC_SYSTEM)
+    message(STATUS "Physic System : ${USE_PHYSIC_SYSTEM}")
+    add_subdirectory(external/box2d)
+    include_directories(external/box2d/include)
+endif()
+
 include_directories(
-    external/box2d/include
     external/tileson/include
     external/yaml-cpp/include
     external/termcolor
