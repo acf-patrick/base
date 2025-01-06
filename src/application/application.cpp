@@ -21,16 +21,29 @@ std::shared_ptr<Serializer> Application::_serializer;
 std::shared_ptr<ApplicationHook> Application::_hook;
 
 Application::Application(const std::string& title, int width, int height,
-                         SDL_WindowFlags windowFlag)
+                         const std::vector<WindowFlag>& windowFlags)
     : _running(true) {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         log("SDL Error : initialisation of subsystems failed!");
         exit(EXIT_FAILURE);
     }
 
-    _window =
-        SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
-                         SDL_WINDOWPOS_CENTERED, width, height, windowFlag);
+    bool centeredWindow = false;
+    int sdlWindowFlags = 0;
+
+    for (auto windowFlag : windowFlags) {
+        if (auto flag = windowFlagToSDLWindowFlag(windowFlag); flag)
+            sdlWindowFlags |= *flag;
+        else if (windowFlag == WindowFlag::CENTERED)
+            centeredWindow = true;
+    }
+
+    _window = SDL_CreateWindow(
+        title.c_str(),
+        centeredWindow ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
+        centeredWindow ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
+        width, height, sdlWindowFlags);
+
     if (!_window) {
         log("SDL Error : unable to create window");
         exit(EXIT_FAILURE);
@@ -150,6 +163,32 @@ int Application::getPreferredFramerate() const { return _fpsManager.rate; }
 void Application::initializeSystems() {
     auto systems = ecs::SystemManager::Get();
     systems->add<ecs::system::PhysicSystem>();
+}
+
+std::optional<SDL_WindowFlags> Application::windowFlagToSDLWindowFlag(
+    WindowFlag flag) {
+    switch (flag) {
+        case WindowFlag::SHOWN:
+            return SDL_WINDOW_SHOWN;
+        case WindowFlag::ALWAYS_ON_TOP:
+            return SDL_WINDOW_ALWAYS_ON_TOP;
+        case WindowFlag::BORDERLESS:
+            return SDL_WINDOW_BORDERLESS;
+        case WindowFlag::CENTERED:
+            return std::nullopt;
+        case WindowFlag::FULLSCREEN_DESKTOP:
+            return SDL_WINDOW_FULLSCREEN_DESKTOP;
+        case WindowFlag::FULLSCREEN:
+            return SDL_WINDOW_FULLSCREEN;
+        case WindowFlag::MAXIMIZED:
+            return SDL_WINDOW_MAXIMIZED;
+        case WindowFlag::MINIMIZED:
+            return SDL_WINDOW_MINIMIZED;
+        case WindowFlag::RESIZABLE:
+            return SDL_WINDOW_RESIZABLE;
+    }
+
+    return std::nullopt;
 }
 
 // static

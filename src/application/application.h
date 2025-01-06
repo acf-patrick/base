@@ -12,9 +12,10 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include "../entry/entry.h"
 #include "../ecs/system/system.h"
+#include "../entry/entry.h"
 #include "../renderer/renderer.h"
 #include "../serializer/serializer.h"
 
@@ -25,6 +26,18 @@ class ApplicationHook;
 
 class Application final {
    public:
+    enum class WindowFlag {
+        SHOWN,
+        RESIZABLE,
+        MINIMIZED,
+        MAXIMIZED,
+        BORDERLESS,
+        ALWAYS_ON_TOP,
+        CENTERED,
+        FULLSCREEN_DESKTOP,
+        FULLSCREEN
+    };
+
     ~Application();
 
     void run();
@@ -58,13 +71,15 @@ class Application final {
 
    private:
     Application(const std::string&, int, int,
-                SDL_WindowFlags windowFlag = SDL_WINDOW_SHOWN);
+                const std::vector<WindowFlag>& windowFlags);
 
     void setWindowPosition(int, int);
 
     void setFramerate(unsigned int);
 
     void initializeSystems();
+
+    std::optional<SDL_WindowFlags> windowFlagToSDLWindowFlag(WindowFlag flag);
 
     bool _running = true;
     SDL_Window* _window;
@@ -75,11 +90,11 @@ class Application final {
     static std::shared_ptr<Serializer> _serializer;
 
     static std::shared_ptr<ApplicationHook> _hook;
-    
+
     static Application* instance;
 
     friend int entix::main(int, char**);
 };
 
-}   // namespace core
-}   // namespace entix
+}  // namespace core
+}  // namespace entix

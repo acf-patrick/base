@@ -40,21 +40,24 @@ int main(int argc, char** argv) {
     VectorI wSize(600, 400);
     if (node["Size"]) wSize = node["Size"].as<VectorI>();
 
-    int flag(0);
+    std::vector<core::Application::WindowFlag> windowFlags;
     if (node["Flags"]) {
-        std::map<std::string, SDL_WindowFlags> bind = {
-            {"shown", SDL_WINDOW_SHOWN},
-            {"resizable", SDL_WINDOW_RESIZABLE},
-            {"minimized", SDL_WINDOW_MINIMIZED},
-            {"maximized", SDL_WINDOW_MAXIMIZED},
-            {"borderless", SDL_WINDOW_BORDERLESS},
-            {"always on top", SDL_WINDOW_ALWAYS_ON_TOP},
-            {"fullscreen", SDL_WINDOW_FULLSCREEN_DESKTOP}};
-        for (auto f : node["Flags"]) flag |= bind[f.as<std::string>()];
+        std::map<std::string, core::Application::WindowFlag> bind = {
+            {"shown", core::Application::WindowFlag::SHOWN},
+            {"resizable", core::Application::WindowFlag::RESIZABLE},
+            {"minimized", core::Application::WindowFlag::MINIMIZED},
+            {"maximized", core::Application::WindowFlag::MAXIMIZED},
+            {"borderless", core::Application::WindowFlag::BORDERLESS},
+            {"always on top", core::Application::WindowFlag::ALWAYS_ON_TOP},
+            {"centered", core::Application::WindowFlag::CENTERED},
+            {"fullscreen", core::Application::WindowFlag::FULLSCREEN},
+            {"fullscreen desktop",
+             core::Application::WindowFlag::FULLSCREEN_DESKTOP}};
+        for (auto f : node["Flags"])
+            windowFlags.push_back(bind[f.as<std::string>()]);
     }
 
-    core::Application application(title, wSize.x, wSize.y,
-                                  SDL_WindowFlags(flag));
+    core::Application application(title, wSize.x, wSize.y, windowFlags);
 
     auto configPath = std::filesystem::path(configFile).parent_path();
     application._configPath = configPath.string();
@@ -65,6 +68,9 @@ int main(int argc, char** argv) {
         if (n.IsSequence()) {
             auto pos = n.as<VectorI>();
             application.setWindowPosition(pos.x, pos.y);
+        } else {
+            Logger::warn() << "Position should be a sequence of two numbers";
+            Logger::endline();
         }
     }
 
