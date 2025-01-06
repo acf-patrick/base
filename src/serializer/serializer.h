@@ -31,6 +31,25 @@ class Serializer {
     bool _deserializeTask(std::shared_ptr<task::ITask>& task, YAML::Node&,
                           ecs::Entity&);
 
+   protected:
+    // Throws an exception if error occures
+    template <typename T>
+    T evaluateExpression(
+        const std::string& expr,
+        const std::unordered_map<std::string, T>& variables) const;
+
+    template <typename T>
+    Vector<T> unormalizeWindowCoordinates(float x, float y) const;
+
+    /// @brief Parse a node as a vector
+    ///
+    /// Parse a node with support for function and macros as value and not just
+    /// a pair of numbers
+    template <typename T>
+    Vector<T> parseVector(const YAML::Node& node) const;
+
+    virtual std::unordered_map<std::string, double> getDefinedVariables() const;
+
    public:
     Serializer();
 
@@ -47,8 +66,8 @@ class Serializer {
      * @param node task node
      * @param entity entity the task pool will be attached to
      */
-    virtual std::shared_ptr<task::ITask> deserializeTask(
-        const YAML::Node& node, ecs::Entity& entity);
+    virtual std::shared_ptr<task::ITask> deserializeTask(const YAML::Node& node,
+                                                         ecs::Entity& entity);
 
     bool deserializeTasks(YAML::Node&, ecs::Entity&);
 

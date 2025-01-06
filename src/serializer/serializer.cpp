@@ -2,15 +2,18 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <regex>
 #include <sstream>
 
 #include "../application/application.h"
 #include "../ecs/components.h"
 #include "../logger/logger.h"
 #include "../path/path.h"
+#include "../renderer/renderer.h"
 #include "../task/asynchronous.h"
 #include "../task/sequential.h"
 #include "../task/task_pool.h"
+#include "../util/exprtk/exprtk.hpp"
 
 namespace entix {
 namespace core {
@@ -317,7 +320,7 @@ void Serializer::deserializeEntity(YAML::Node &node, ecs::Entity &entity) {
         n = node["TransformComponent"];
         if (n) {
             auto &t = entity.attach<ecs::component::Transform>();
-            if (n["Position"]) t.position = n["Position"].as<VectorD>();
+            if (n["Position"]) t.position = parseVector<double>(n["Position"]);
             if (n["Scale"]) t.scale = n["Scale"].as<VectorF>();
             if (n["Rotation"]) t.rotation = n["Rotation"].as<double>();
         }
@@ -448,6 +451,71 @@ void Serializer::serializeEntity(YAML::Emitter &out, ecs::Entity &entity) {
                    .getFrameDuration();
         out << YAML::EndMap;
     }
+}
+
+template <typename T>
+Vector<T> Serializer::parseVector(const YAML::Node &node) const {
+    if (node.IsScalar()) {
+        const auto value = node.as<std::string>();
+        std::regex functionRegex(
+            R"(normalizedWindowCoords\(([-+]?[0-9]*\.?[0-9]+)\s*,\s*([-+]?[0-9]*\.?[0-9]+)\))");
+
+        std::smatch match;
+        if (std::regex_match(value, match, functionRegex)) {
+            const auto x = std::stof(match[1].str());
+            const auto y = std::stof(match[2].str());
+            return unormalizeWindowCoordinates<T>(x, y);
+        }
+    } else if (node.IsSequence() && node.size() == 2) {
+        auto isNodeANumber = [](const YAML::Node &node) {
+            try {
+                auto _ = node.as<double>();
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        if (isNodeANumber(node[0]) && isNodeANumber(node[1]))
+            return node.as<Vector<T>>();
+
+        const auto variables = getDefinedVariables();
+        return {evaluateExpression(node[0].as<std::string>(), variables),
+                evaluateExpression(node[1].as<std::string>(), variables)};
+    }
+
+    std::stringstream ss;
+    const auto nodeMark = node.Mark();
+    ss << "Invalid Position format at [" << nodeMark.line << ", "
+       << nodeMark.column << ']';
+
+    throw std::runtime_error(ss.str());
+}
+
+template <typename T>
+T Serializer::evaluateExpression(
+    const std::string &expr,
+    const std::unordered_map<std::string, T> &variables) const {
+    exprtk::symbol_table<T> symbolTable;
+    for (auto &[key, value] : variables) {
+        symbolTable.add_constant(key, value);
+    }
+
+    exprtk::parser<T> parser;
+    const auto expression = parser.compile(expr, symbolTable);
+    return expression.value();
+}
+
+template <typename T>
+Vector<T> Serializer::unormalizeWindowCoordinates(float x, float y) const {
+    const auto windowSize = RenderManager::Get()->getSize();
+    return {windowSize.x * x, windowSize.y * y};
+}
+
+std::unordered_map<std::string, double> Serializer::getDefinedVariables()
+    const {
+    const auto windowSize = RenderManager::Get()->getSize();
+    return {{"WINDOW_WIDTH", windowSize.x}, {"WINDOW_HEIGHT", windowSize.y}};
 }
 
 int Serializer::_cnt = 0;
